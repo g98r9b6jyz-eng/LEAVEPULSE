@@ -1,0 +1,603 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Federal Leave Period Splitter</title>
+    
+    <!-- External Libraries -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+    <style>
+        /* Small utility to hide arrows on number inputs */
+        input[type="number"]::-webkit-inner-spin-button, 
+        input[type="number"]::-webkit-outer-spin-button { 
+            -webkit-appearance: none; 
+            margin: 0; 
+        }
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="min-h-screen bg-slate-50 p-4 md:p-8 font-sans text-slate-800">
+    <div class="max-w-6xl mx-auto space-y-6">
+        
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row items-center justify-between bg-white p-6 rounded-xl shadow-sm border border-slate-100">
+            <div>
+                <h1 class="text-2xl font-bold text-slate-900 flex items-center gap-2">
+                    <i data-lucide="calendar" class="text-blue-600"></i>
+                    Federal Leave Period Splitter
+                </h1>
+                <p class="text-slate-500 mt-1 text-sm">
+                    Input leave dates to map against federal pay periods. Flags holidays and allows custom hour allocation.
+                </p>
+            </div>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            <!-- Left Column: Input Form & Staging -->
+            <div class="lg:col-span-1 space-y-6">
+                <form id="leave-form" class="bg-white p-6 rounded-xl shadow-sm border border-slate-100 space-y-5">
+                    <div class="border-b border-slate-100 pb-4 mb-4">
+                        <h2 class="text-lg font-semibold flex items-center gap-2">
+                            <i data-lucide="plus" class="text-blue-500" width="20" height="20"></i>
+                            New Leave Request
+                        </h2>
+                    </div>
+                    
+                    <div>
+                        <label class="block text-sm font-medium text-slate-700 mb-1">Employee Initials</label>
+                        <input 
+                            type="text" 
+                            id="initials-input"
+                            placeholder="e.g. TAG"
+                            class="w-full rounded-lg border-slate-300 border p-2.5 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all uppercase"
+                            required
+                        />
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">Start Date</label>
+                            <input 
+                                type="text" 
+                                id="start-date-input"
+                                placeholder="MM/DD/YY"
+                                class="w-full rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm smart-date"
+                                required
+                            />
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 mb-1">End Date</label>
+                            <input 
+                                type="text" 
+                                id="end-date-input"
+                                placeholder="MM/DD/YY"
+                                class="w-full rounded-lg border-slate-300 border p-2 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm smart-date"
+                            />
+                        </div>
+                    </div>
+
+                    <div id="date-error" class="hidden text-sm font-medium text-red-600 bg-red-50 p-2.5 rounded-lg border border-red-100 flex items-center gap-2">
+                        <i data-lucide="alert-triangle" width="16" height="16"></i> Start date cannot be after end date.
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        id="preview-btn"
+                        class="w-full bg-slate-800 hover:bg-slate-900 text-white font-medium py-2.5 px-4 rounded-lg transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                        Preview Pay Periods
+                    </button>
+                </form>
+
+                <!-- Staging / Allocation Area -->
+                <div id="staging-container" class="hidden bg-white p-6 rounded-xl shadow-md border-2 border-blue-100 transition-all">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="font-bold text-slate-800">Allocate Hours</h3>
+                        <button type="button" id="cancel-staging-btn" class="text-sm text-slate-400 hover:text-slate-600">Cancel</button>
+                    </div>
+
+                    <div id="staging-list" class="space-y-4 mb-6">
+                        <!-- Dynamic Staging Items Go Here -->
+                    </div>
+
+                    <div class="flex items-center justify-between pt-4 border-t border-slate-100">
+                        <div class="text-sm">
+                            Total Hours: <span id="staging-total" class="font-bold text-blue-700">0.00</span>
+                        </div>
+                        <button 
+                            type="button"
+                            id="save-tracker-btn"
+                            class="bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg transition-colors flex items-center gap-2 text-sm shadow-sm"
+                        >
+                            Save to Tracker <i data-lucide="arrow-right" width="16" height="16"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Output Table -->
+            <div class="lg:col-span-2">
+                <div class="bg-white rounded-xl shadow-sm border border-slate-100 flex flex-col h-full">
+                    <div class="p-6 border-b border-slate-100 flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                        <div>
+                            <h2 class="text-lg font-semibold flex items-center gap-2">
+                                <i data-lucide="file-spreadsheet" class="text-emerald-500" width="20" height="20"></i>
+                                Final Export Tracker
+                            </h2>
+                            <p class="text-sm text-slate-500">Saved leave ready for export to XLSX.</p>
+                        </div>
+                        <div id="table-actions" class="hidden flex gap-2">
+                            <button 
+                                id="clear-all-btn"
+                                class="px-3 py-1.5 text-sm font-medium text-slate-600 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-lg transition-colors border border-slate-200"
+                            >
+                                Clear All
+                            </button>
+                            <button 
+                                id="export-btn"
+                                class="px-4 py-1.5 text-sm font-medium text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                            >
+                                <i data-lucide="download" width="16" height="16"></i>
+                                Export XLSX
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="flex-1 overflow-x-auto p-0">
+                        <!-- Empty State -->
+                        <div id="empty-state" class="h-64 flex flex-col items-center justify-center text-slate-400 p-6 text-center">
+                            <i data-lucide="calendar" class="mb-4 opacity-20" width="48" height="48"></i>
+                            <p class="text-lg font-medium text-slate-500">No entries saved</p>
+                            <p class="text-sm mt-1 max-w-sm">Use the form on the left to preview pay periods and allocate hours to build your export sheet.</p>
+                        </div>
+
+                        <!-- Data Table -->
+                        <table id="data-table" class="hidden w-full text-left text-sm whitespace-nowrap">
+                            <thead class="bg-slate-50 text-slate-600 border-b border-slate-200">
+                                <tr>
+                                    <th class="px-6 py-3 font-semibold">Initials</th>
+                                    <th class="px-6 py-3 font-semibold">Start Date</th>
+                                    <th class="px-6 py-3 font-semibold">End Date</th>
+                                    <th class="px-6 py-3 font-semibold">Leave Hours</th>
+                                    <th class="px-6 py-3 font-semibold text-right">Action</th>
+                                </tr>
+                            </thead>
+                            <tbody id="table-body" class="divide-y divide-slate-100">
+                                <!-- Dynamic Table Rows Go Here -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Application Logic -->
+    <script>
+        // --- Constants & Data ---
+        const HOLIDAYS = [
+            { date: '2026-05-25', name: 'Memorial Day' }, { date: '2026-06-19', name: 'Juneteenth' },
+            { date: '2026-07-03', name: 'Independence Day (Obs)' }, { date: '2026-09-07', name: 'Labor Day' },
+            { date: '2026-10-12', name: 'Columbus/Indigenous Peoples Day' }, { date: '2026-11-11', name: 'Veterans Day' },
+            { date: '2026-11-26', name: 'Thanksgiving Day' }, { date: '2026-12-25', name: 'Christmas Day' },
+            { date: '2027-01-01', name: "New Year's Day" }, { date: '2027-01-18', name: 'MLK Jr. Day' },
+            { date: '2027-02-15', name: "Presidents' Day" }, { date: '2027-05-31', name: 'Memorial Day' },
+            { date: '2027-06-18', name: 'Juneteenth (Obs)' }, { date: '2027-07-05', name: 'Independence Day (Obs)' },
+            { date: '2027-09-06', name: 'Labor Day' }, { date: '2027-10-11', name: 'Columbus Day' },
+            { date: '2027-11-11', name: 'Veterans Day' }, { date: '2027-11-25', name: 'Thanksgiving Day' },
+            { date: '2027-12-24', name: 'Christmas Day (Obs)' }
+        ];
+
+        let entries = [];
+        let staging = [];
+        let payPeriods = [];
+        let parsedHolidays = [];
+
+        // --- DOM Elements ---
+        const form = document.getElementById('leave-form');
+        const initialsInput = document.getElementById('initials-input');
+        const startDateInput = document.getElementById('start-date-input');
+        const endDateInput = document.getElementById('end-date-input');
+        const dateError = document.getElementById('date-error');
+        const previewBtn = document.getElementById('preview-btn');
+        
+        const stagingContainer = document.getElementById('staging-container');
+        const stagingList = document.getElementById('staging-list');
+        const stagingTotal = document.getElementById('staging-total');
+        const cancelStagingBtn = document.getElementById('cancel-staging-btn');
+        const saveTrackerBtn = document.getElementById('save-tracker-btn');
+
+        const tableActions = document.getElementById('table-actions');
+        const emptyState = document.getElementById('empty-state');
+        const dataTable = document.getElementById('data-table');
+        const tableBody = document.getElementById('table-body');
+        const clearAllBtn = document.getElementById('clear-all-btn');
+        const exportBtn = document.getElementById('export-btn');
+
+        // --- Date Helpers ---
+        function parseDate(str) {
+            if (!str) return null;
+            let cleanStr = str.replace(/[\-\.]/g, '/');
+            let parts = cleanStr.split('/');
+            if (parts.length === 3) {
+                let y, m, d;
+                if (parts[0].length === 4) { y = parts[0]; m = parts[1]; d = parts[2]; } 
+                else { m = parts[0]; d = parts[1]; y = parts[2]; }
+                if (y.length === 2) y = '20' + y;
+                const dateObj = new Date(Number(y), Number(m) - 1, Number(d), 12, 0, 0);
+                if (isNaN(dateObj.getTime())) return null;
+                return dateObj;
+            }
+            return null;
+        }
+
+        function formatShort(d) {
+            return `${d.getMonth() + 1}/${d.getDate()}/${d.getFullYear()}`;
+        }
+
+        // --- Initialization ---
+        function init() {
+            lucide.createIcons();
+
+            // Generate Pay Periods
+            const anchor = new Date(2026, 4, 17, 12, 0, 0);
+            let startBase = new Date(anchor.getTime());
+            startBase.setDate(startBase.getDate() - (50 * 14));
+            for (let i = 0; i < 200; i++) {
+                let ppStart = new Date(startBase.getTime());
+                ppStart.setDate(startBase.getDate() + (i * 14));
+                let ppEnd = new Date(ppStart.getTime());
+                ppEnd.setDate(ppStart.getDate() + 13);
+                payPeriods.push({ start: ppStart, end: ppEnd });
+            }
+
+            // Parse Holidays
+            parsedHolidays = HOLIDAYS.map(h => ({ ...h, dateObj: parseDate(h.date) }));
+
+            // Event Listeners
+            document.querySelectorAll('.smart-date').forEach(input => {
+                input.addEventListener('blur', handleSmartDateBlur);
+                input.addEventListener('input', validateFormState);
+            });
+
+            form.addEventListener('submit', handlePreview);
+            cancelStagingBtn.addEventListener('click', clearStaging);
+            saveTrackerBtn.addEventListener('click', handleSaveToTracker);
+            clearAllBtn.addEventListener('click', handleClearAll);
+            exportBtn.addEventListener('click', exportData);
+        }
+
+        // --- Logic & Event Handlers ---
+        function handleSmartDateBlur(e) {
+            let val = e.target.value.trim();
+            if (!val) { validateFormState(); return; }
+            
+            let cleanStr = val.replace(/[\-\.]/g, '/');
+            let parts = cleanStr.split('/');
+            
+            if (parts.length === 3) {
+                let [p1, p2, p3] = parts;
+                let y, m, d;
+
+                if (p1.length === 4) { y = p1; m = p2; d = p3; } 
+                else { m = p1; d = p2; y = p3; }
+
+                m = m.padStart(2, '0');
+                d = d.padStart(2, '0');
+                if (y.length === 2) y = '20' + y;
+
+                if (m.length === 2 && d.length === 2 && y.length === 4) {
+                    e.target.value = `${m}/${d}/${y}`;
+                }
+            }
+            validateFormState();
+        }
+
+        function validateFormState() {
+            const uStart = parseDate(startDateInput.value);
+            const uEnd = parseDate(endDateInput.value);
+            
+            let isError = uStart && uEnd && uStart > uEnd;
+            let isStaging = staging.length > 0;
+
+            if (isError) {
+                dateError.classList.remove('hidden');
+            } else {
+                dateError.classList.add('hidden');
+            }
+
+            previewBtn.disabled = isError || isStaging;
+        }
+
+        function handlePreview(e) {
+            e.preventDefault();
+            
+            let currentEndDate = endDateInput.value;
+            if (startDateInput.value && !endDateInput.value) {
+                currentEndDate = startDateInput.value;
+                endDateInput.value = startDateInput.value;
+            }
+
+            if (!startDateInput.value || !currentEndDate) return;
+
+            const uStart = parseDate(startDateInput.value);
+            const uEnd = parseDate(currentEndDate);
+
+            if (!uStart || !uEnd) {
+                alert("Please enter valid dates.");
+                return;
+            }
+
+            if (uStart > uEnd) return;
+
+            const overlaps = [];
+            for (const pp of payPeriods) {
+                if (pp.start <= uEnd && pp.end >= uStart) {
+                    const oStart = new Date(Math.max(uStart.getTime(), pp.start.getTime()));
+                    const oEnd = new Date(Math.min(uEnd.getTime(), pp.end.getTime()));
+                    
+                    const holidaysInPeriod = parsedHolidays
+                        .filter(h => h.dateObj >= pp.start && h.dateObj <= pp.end)
+                        .map(h => h.name);
+
+                    overlaps.push({
+                        id: Math.random().toString(36).substr(2, 9),
+                        ppStart: pp.start,
+                        ppEnd: pp.end,
+                        start: oStart,
+                        end: oEnd,
+                        hours: 0,
+                        holidays: holidaysInPeriod
+                    });
+                }
+            }
+
+            staging = overlaps;
+            renderStaging();
+            validateFormState();
+        }
+
+        function renderStaging() {
+            if (staging.length === 0) {
+                stagingContainer.classList.add('hidden');
+                return;
+            }
+
+            stagingContainer.classList.remove('hidden');
+            stagingList.innerHTML = '';
+            
+            staging.forEach(s => {
+                const isHoliday = s.holidays.length > 0;
+                let holidayWarningHTML = '';
+                
+                if (isHoliday) {
+                    holidayWarningHTML = `
+                        <div class="mt-2 space-y-2">
+                            <div class="text-xs font-medium text-amber-700 bg-amber-50 p-2 rounded border border-amber-100 flex items-start gap-1.5">
+                                <i data-lucide="alert-triangle" class="shrink-0 mt-0.5 text-amber-500" width="14" height="14"></i>
+                                <span><strong>Holiday Pay Period!</strong> Includes: ${s.holidays.join(', ')}</span>
+                            </div>
+                            <div id="over-hours-warning-${s.id}" class="hidden text-xs font-medium text-red-700 bg-red-50 p-2 rounded border border-red-100 flex items-start gap-1.5">
+                                <i data-lucide="alert-triangle" class="shrink-0 mt-0.5 text-red-500" width="14" height="14"></i>
+                                <span><strong>Check Hours:</strong> You entered <span class="warn-hours-val"></span> hours during a holiday period. Should it be 70?</span>
+                            </div>
+                        </div>
+                    `;
+                }
+
+                const html = `
+                    <div class="p-3 bg-slate-50 border border-slate-200 rounded-lg">
+                        <div class="flex justify-between items-center mb-2">
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800">${formatShort(s.start)} - ${formatShort(s.end)}</p>
+                                <p class="text-xs text-slate-500">Pay Period: ${formatShort(s.ppStart)} to ${formatShort(s.ppEnd)}</p>
+                            </div>
+                            <input
+                                type="number"
+                                step="0.01"
+                                min="0"
+                                placeholder="Hours"
+                                value="${s.hours}"
+                                data-id="${s.id}"
+                                data-isholiday="${isHoliday}"
+                                class="staging-hour-input w-20 p-1.5 border border-slate-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-medium outline-none text-right"
+                            />
+                        </div>
+                        ${holidayWarningHTML}
+                    </div>
+                `;
+                stagingList.insertAdjacentHTML('beforeend', html);
+            });
+
+            lucide.createIcons();
+            updateStagingTotal();
+
+            // Bind inputs for live total update & warnings
+            document.querySelectorAll('.staging-hour-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    const val = parseFloat(e.target.value) || 0;
+                    const id = e.target.dataset.id;
+                    const isHol = e.target.dataset.isholiday === "true";
+                    
+                    // Sync array
+                    const item = staging.find(x => x.id === id);
+                    if (item) item.hours = val;
+
+                    // Warning check
+                    if (isHol) {
+                        const warnBox = document.getElementById(`over-hours-warning-${id}`);
+                        if (val >= 80) {
+                            warnBox.querySelector('.warn-hours-val').textContent = val;
+                            warnBox.classList.remove('hidden');
+                        } else {
+                            warnBox.classList.add('hidden');
+                        }
+                    }
+
+                    updateStagingTotal();
+                });
+            });
+        }
+
+        function updateStagingTotal() {
+            const total = staging.reduce((sum, s) => sum + (parseFloat(s.hours) || 0), 0);
+            stagingTotal.textContent = total.toFixed(2);
+        }
+
+        function handleSaveToTracker() {
+            // Read latest values from state array
+            const validEntries = staging
+                .filter(s => s.hours !== '' && parseFloat(s.hours) >= 0)
+                .map(s => ({
+                    id: s.id,
+                    initials: (initialsInput.value).toUpperCase() || 'UNK',
+                    start: s.start,
+                    end: s.end,
+                    hours: parseFloat(s.hours)
+                }));
+
+            if (validEntries.length === 0) {
+                alert("Please enter valid hours for at least one split period before saving.");
+                return;
+            }
+
+            entries = [...entries, ...validEntries];
+            
+            clearStaging();
+            startDateInput.value = '';
+            endDateInput.value = '';
+            validateFormState();
+            renderEntries();
+        }
+
+        function clearStaging() {
+            staging = [];
+            renderStaging();
+            validateFormState();
+        }
+
+        function renderEntries() {
+            if (entries.length === 0) {
+                emptyState.classList.remove('hidden');
+                dataTable.classList.add('hidden');
+                tableActions.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            dataTable.classList.remove('hidden');
+            tableActions.classList.remove('hidden');
+            
+            tableBody.innerHTML = '';
+
+            entries.forEach(entry => {
+                const html = `
+                    <tr class="hover:bg-slate-50/50 transition-colors">
+                        <td class="px-6 py-3 font-medium text-slate-900">${entry.initials}</td>
+                        <td class="px-6 py-3 text-slate-600">${formatShort(entry.start)}</td>
+                        <td class="px-6 py-3 text-slate-600">${formatShort(entry.end)}</td>
+                        <td class="px-6 py-3">
+                            <input 
+                                type="number"
+                                step="0.01"
+                                value="${entry.hours}"
+                                data-id="${entry.id}"
+                                class="tracker-hour-input w-24 p-1 border border-transparent hover:border-slate-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded bg-transparent focus:bg-white text-slate-900 font-medium outline-none transition-all"
+                            />
+                        </td>
+                        <td class="px-6 py-3 text-right">
+                            <button 
+                                data-id="${entry.id}"
+                                class="delete-btn text-slate-400 hover:text-red-500 transition-colors p-1 rounded hover:bg-red-50"
+                                title="Delete row"
+                            >
+                                <i data-lucide="trash-2" width="16" height="16"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tableBody.insertAdjacentHTML('beforeend', html);
+            });
+
+            lucide.createIcons();
+
+            // Bind updates
+            document.querySelectorAll('.tracker-hour-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const id = e.target.dataset.id;
+                    const val = e.target.value;
+                    const item = entries.find(x => x.id === id);
+                    if (item) item.hours = val;
+                });
+            });
+
+            // Bind deletes
+            document.querySelectorAll('.delete-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.dataset.id;
+                    entries = entries.filter(x => x.id !== id);
+                    renderEntries();
+                });
+            });
+        }
+
+        function handleClearAll() {
+            if (confirm("Are you sure you want to clear all saved records?")) {
+                entries = [];
+                renderEntries();
+            }
+        }
+
+        function exportData() {
+            if (entries.length === 0) return;
+            
+            const headers = ['Initials', 'Start_Date', 'End_Date', 'Leave_Hours'];
+            const rows = entries.map(r => [
+                r.initials, 
+                formatShort(r.start), 
+                formatShort(r.end), 
+                r.hours
+            ]);
+            const data = [headers, ...rows];
+
+            const today = new Date();
+            const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"];
+            const month = monthNames[today.getMonth()];
+            const day = today.getDate();
+            const baseFilename = `ED_LEAVE_${month}_${day}`;
+
+            try {
+                // XLSX is available globally via CDN
+                const ws = XLSX.utils.aoa_to_sheet(data);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Leave_Data");
+                XLSX.writeFile(wb, `${baseFilename}.xlsx`);
+            } catch (e) {
+                console.error("XLSX export failed, falling back to CSV", e);
+                const csvContent = data.map(e => e.join(',')).join('\n');
+                const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.setAttribute('href', url);
+                link.setAttribute('download', `${baseFilename}.csv`);
+                link.style.visibility = 'hidden';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            }
+        }
+
+        // Run setup
+        document.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>

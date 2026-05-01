@@ -1,2 +1,0 @@
-# LEAVEPULSE
-pulse leave

@@ -304,6 +304,14 @@
                 input.addEventListener('input', validateFormState);
             });
 
+            // Force physical uppercase and strip out any non-letter characters as user types
+            initialsInput.addEventListener('input', (e) => {
+                e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase();
+            });
+            initialsInput.addEventListener('blur', (e) => {
+                e.target.value = e.target.value.trim();
+            });
+
             form.addEventListener('submit', handlePreview);
             cancelStagingBtn.addEventListener('click', clearStaging);
             saveTrackerBtn.addEventListener('click', handleSaveToTracker);
@@ -512,7 +520,7 @@
         }
 
         function handleSaveToTracker() {
-            const newInitials = (initialsInput.value).toUpperCase() || 'UNK';
+            const newInitials = (initialsInput.value).trim().toUpperCase() || 'UNK';
 
             const validEntries = staging
                 .filter(s => s.hours !== '' && parseFloat(s.hours) >= 0)

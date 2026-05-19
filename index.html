@@ -26,7 +26,35 @@
         }
     </style>
 </head>
-<body class="min-h-screen bg-gray-50 p-4 md:p-8 text-gray-800 antialiased selection:bg-blue-100 selection:text-blue-900">
+<body class="min-h-screen bg-gray-50 p-4 md:p-8 text-gray-800 antialiased selection:bg-blue-100 selection:text-blue-900 relative">
+    
+    <!-- Custom Modal Dialog -->
+    <div id="custom-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-gray-900/40 backdrop-blur-sm transition-opacity duration-200">
+        <div class="bg-white rounded-2xl shadow-xl w-full max-w-xl mx-4 p-6 transform scale-95 transition-transform duration-200 flex flex-col max-h-[90vh]" id="modal-content">
+            <h3 id="modal-title" class="text-xl font-bold text-gray-900 mb-2 shrink-0">Notice</h3>
+            
+            <div class="flex flex-col gap-4 mb-6 overflow-hidden">
+                <p id="modal-message" class="text-gray-600 leading-relaxed whitespace-pre-wrap shrink-0">Message content goes here.</p>
+                <input 
+                    type="text" 
+                    id="modal-input" 
+                    class="hidden w-full bg-gray-50 rounded-lg border border-gray-300 p-3 focus:bg-white focus:ring-2 focus:ring-blue-500 outline-none uppercase font-semibold text-gray-900 placeholder-gray-400 shrink-0" 
+                    placeholder="Type initials (e.g. TAG)..." 
+                />
+                <div id="modal-bulk-container" class="hidden flex-col gap-2 overflow-y-auto pr-2 pb-1"></div>
+            </div>
+
+            <div class="flex justify-end gap-3 shrink-0 mt-auto">
+                <button id="modal-cancel-btn" class="hidden px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors">
+                    Cancel
+                </button>
+                <button id="modal-confirm-btn" class="px-5 py-2 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
     <div class="max-w-7xl mx-auto space-y-6">
         
         <!-- Header -->
@@ -46,91 +74,24 @@
 
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
             
-            <!-- Left Column: Input Form & Staging -->
+            <!-- Left Column: Upload Area -->
             <div class="lg:col-span-4 space-y-6">
-                <!-- Data Entry Card -->
-                <form id="leave-form" class="bg-white p-7 rounded-2xl shadow-sm border border-gray-200 space-y-6">
-                    <div class="flex items-center gap-2 mb-2">
-                        <div class="h-6 w-1.5 bg-blue-600 rounded-full"></div>
-                        <h2 class="text-lg font-semibold text-gray-900">New Request</h2>
-                    </div>
+                <div 
+                    id="dropzone" 
+                    class="bg-white p-10 rounded-2xl shadow-sm border-2 border-dashed border-gray-300 transition-all hover:border-blue-400 flex flex-col items-center justify-center text-center h-[calc(100%-1rem)] min-h-[350px] cursor-pointer group"
+                >
+                    <input type="file" id="file-input" class="hidden" accept=".xlsx, .csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, text/csv" />
                     
-                    <div class="space-y-1.5">
-                        <label class="block text-sm font-semibold text-gray-700">Employee Initials</label>
-                        <input 
-                            type="text" 
-                            id="initials-input"
-                            placeholder="e.g. TAG"
-                            class="w-full bg-gray-50 rounded-lg border border-gray-300 p-2.5 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all uppercase text-gray-900 font-medium placeholder-gray-400 shadow-inner"
-                            required
-                        />
+                    <div class="bg-blue-50 group-hover:bg-blue-100 p-5 rounded-full mb-4 transition-colors">
+                        <i data-lucide="upload-cloud" class="text-blue-600" width="40" height="40"></i>
                     </div>
-
-                    <div class="grid grid-cols-2 gap-4">
-                        <div class="space-y-1.5">
-                            <label class="block text-sm font-semibold text-gray-700">Start Date</label>
-                            <input 
-                                type="text" 
-                                id="start-date-input"
-                                placeholder="MM/DD/YY"
-                                class="w-full bg-gray-50 rounded-lg border border-gray-300 p-2.5 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm text-gray-900 font-medium placeholder-gray-400 shadow-inner smart-date"
-                                required
-                            />
-                        </div>
-
-                        <div class="space-y-1.5">
-                            <label class="block text-sm font-semibold text-gray-700">End Date</label>
-                            <input 
-                                type="text" 
-                                id="end-date-input"
-                                placeholder="MM/DD/YY"
-                                class="w-full bg-gray-50 rounded-lg border border-gray-300 p-2.5 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-all text-sm text-gray-900 font-medium placeholder-gray-400 shadow-inner smart-date"
-                            />
-                        </div>
+                    <div>
+                        <h2 class="text-xl font-bold text-gray-900 mb-2">Upload Roster</h2>
+                        <p class="text-sm text-gray-500 mb-6 max-w-[220px] mx-auto leading-relaxed">Drop your Amion XLSX or CSV export here, or click to browse files.</p>
                     </div>
-
-                    <div id="date-error" class="hidden text-sm font-medium text-red-800 bg-red-50 p-3 rounded-lg border border-red-200 flex items-start gap-2">
-                        <i data-lucide="alert-circle" class="shrink-0 mt-0.5 text-red-600" width="16" height="16"></i> 
-                        <span>Start date cannot be after end date.</span>
-                    </div>
-
-                    <button 
-                        type="submit" 
-                        id="preview-btn"
-                        class="w-full bg-gray-900 hover:bg-gray-800 text-white font-semibold py-3 px-4 rounded-xl transition-all shadow-sm flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        Preview Allocation
+                    <button type="button" class="bg-blue-600 group-hover:bg-blue-700 text-white font-semibold py-3 px-8 rounded-xl transition-all shadow-sm">
+                        Select File
                     </button>
-                </form>
-
-                <!-- Staging / Allocation Area -->
-                <div id="staging-container" class="hidden bg-blue-50/40 p-7 rounded-2xl shadow-sm border border-blue-100 transition-all">
-                    <div class="flex items-center justify-between mb-5">
-                        <div class="flex items-center gap-2">
-                            <div class="h-5 w-5 rounded bg-blue-100 flex items-center justify-center">
-                                <i data-lucide="split-square-horizontal" class="text-blue-600" width="12" height="12"></i>
-                            </div>
-                            <h3 class="font-semibold text-gray-900">Allocate Hours</h3>
-                        </div>
-                        <button type="button" id="cancel-staging-btn" class="text-sm font-medium text-gray-500 hover:text-gray-800 transition-colors">Cancel</button>
-                    </div>
-
-                    <div id="staging-list" class="space-y-3 mb-6">
-                        <!-- Dynamic Staging Items Go Here -->
-                    </div>
-
-                    <div class="flex items-center justify-between pt-5 border-t border-blue-100">
-                        <div class="text-sm font-medium text-gray-600">
-                            Total Hours: <span id="staging-total" class="font-bold text-blue-700 ml-1 text-base">0.00</span>
-                        </div>
-                        <button 
-                            type="button"
-                            id="save-tracker-btn"
-                            class="bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2.5 px-5 rounded-lg transition-colors flex items-center gap-2 text-sm shadow-sm"
-                        >
-                            Save to Tracker <i data-lucide="arrow-right" width="16" height="16"></i>
-                        </button>
-                    </div>
                 </div>
             </div>
 
@@ -143,18 +104,24 @@
                                 <i data-lucide="table-properties" class="text-emerald-600" width="20" height="20"></i>
                                 Network Sorter Tracker
                             </h2>
-                            <p class="text-sm text-gray-500 mt-0.5">Processed data ready for system import.</p>
+                            <p class="text-sm text-gray-500 mt-0.5">Processed data ready for final review and export.</p>
                         </div>
-                        <div id="table-actions" class="hidden flex gap-3">
+                        <div id="table-actions" class="flex gap-3">
+                            <button 
+                                id="add-row-btn"
+                                class="px-4 py-2 text-sm font-semibold text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors border border-blue-200 shadow-sm flex items-center gap-1.5"
+                            >
+                                <i data-lucide="plus" width="16" height="16"></i> Add Row
+                            </button>
                             <button 
                                 id="clear-all-btn"
-                                class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-700 bg-white hover:bg-red-50 rounded-lg transition-colors border border-gray-200 hover:border-red-200 shadow-sm"
+                                class="hidden px-4 py-2 text-sm font-medium text-gray-600 hover:text-red-700 bg-white hover:bg-red-50 rounded-lg transition-colors border border-gray-200 hover:border-red-200 shadow-sm"
                             >
                                 Clear All
                             </button>
                             <button 
                                 id="export-btn"
-                                class="px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
+                                class="hidden px-5 py-2 text-sm font-semibold text-white bg-emerald-600 hover:bg-emerald-700 rounded-lg transition-colors flex items-center gap-2 shadow-sm"
                             >
                                 <i data-lucide="file-down" width="16" height="16"></i>
                                 Export XLSX
@@ -168,8 +135,8 @@
                             <div class="bg-gray-50 p-4 rounded-full mb-4 border border-gray-100">
                                 <i data-lucide="folder-open" class="text-gray-300" width="48" height="48"></i>
                             </div>
-                            <p class="text-lg font-semibold text-gray-600">No records staged</p>
-                            <p class="text-sm mt-1 max-w-sm text-gray-500 leading-relaxed">Process a leave request using the form on the left to begin building your allocation table.</p>
+                            <p class="text-lg font-semibold text-gray-600">No records loaded</p>
+                            <p class="text-sm mt-1 max-w-sm text-gray-500 leading-relaxed">Upload an Amion roster using the panel on the left to automatically sort and process leave entries.</p>
                         </div>
 
                         <!-- Data Table -->
@@ -196,45 +163,119 @@
 
     <!-- Application Logic -->
     <script>
-        // --- Constants & Data ---
-        const HOLIDAYS = [
-            { date: '2026-05-25', name: 'Memorial Day' }, { date: '2026-06-19', name: 'Juneteenth' },
-            { date: '2026-07-03', name: 'Independence Day (Obs)' }, { date: '2026-09-07', name: 'Labor Day' },
-            { date: '2026-10-12', name: 'Columbus/Indigenous Peoples Day' }, { date: '2026-11-11', name: 'Veterans Day' },
-            { date: '2026-11-26', name: 'Thanksgiving Day' }, { date: '2026-12-25', name: 'Christmas Day' },
-            { date: '2027-01-01', name: "New Year's Day" }, { date: '2027-01-18', name: 'MLK Jr. Day' },
-            { date: '2027-02-15', name: "Presidents' Day" }, { date: '2027-05-31', name: 'Memorial Day' },
-            { date: '2027-06-18', name: 'Juneteenth (Obs)' }, { date: '2027-07-05', name: 'Independence Day (Obs)' },
-            { date: '2027-09-06', name: 'Labor Day' }, { date: '2027-10-11', name: 'Columbus Day' },
-            { date: '2027-11-11', name: 'Veterans Day' }, { date: '2027-11-25', name: 'Thanksgiving Day' },
-            { date: '2027-12-24', name: 'Christmas Day (Obs)' }
-        ];
+        // --- Constants & Config ---
+        const SPECIAL_PROVIDERS = ['JNC', 'JIR', 'ACC', 'VCA', 'WTB', 'MDT', 'CJ', 'RMS', 'RP'];
+
+        const BASE_INITIALS = {
+            "ADAM, G": "GA", "ARCEDO, V": "VCA", "BACASNOT, J": "JVB", "BASTERRECHEA, H": "HRB",
+            "BOU, C": "CB", "CABATU, A": "ACC", "DE LEON, M": "MDT", "DOMINGUEZ, G": "GJDP",
+            "DOTSON, T": "TMD", "GONZALEZ-TORRES, J": "JGT", "GRAZIANO, J": "JDG", "JOHNSON, C": "CJ",
+            "MOHAR, C": "CMM", "PAULIS, J": "JP", "PEREZ, K": "KFP", "POOLE, R": "RP",
+            "RUIZ-QUINONES, J": "JIR", "SANDERS, B": "BS", "SORGE, R": "RMS", "SOSA, E": "ES",
+            "VIJAPURA, C": "CAV", "ALEXANDER, B": "BRA", "BENJAMIN, J": "JPB", "BRINSON, T": "WTB",
+            "CALIFANO, J": "JNC", "DECHON, B": "RLD", "FREDERIQUE-BELL, P": "PFB", "GRIMALDI, T": "TAG",
+            "PIERSON, K": "KRP"
+        };
+
+        let sessionInitials = { ...BASE_INITIALS };
 
         let entries = [];
-        let staging = [];
         let payPeriods = [];
-        let parsedHolidays = [];
+
+        // Upload State
+        let unknownQueue = [];
+        let parsedRows = [];
+        let parsedDates = []; // map column index -> Date
 
         // --- DOM Elements ---
-        const form = document.getElementById('leave-form');
-        const initialsInput = document.getElementById('initials-input');
-        const startDateInput = document.getElementById('start-date-input');
-        const endDateInput = document.getElementById('end-date-input');
-        const dateError = document.getElementById('date-error');
-        const previewBtn = document.getElementById('preview-btn');
+        const dropzone = document.getElementById('dropzone');
+        const fileInput = document.getElementById('file-input');
         
-        const stagingContainer = document.getElementById('staging-container');
-        const stagingList = document.getElementById('staging-list');
-        const stagingTotal = document.getElementById('staging-total');
-        const cancelStagingBtn = document.getElementById('cancel-staging-btn');
-        const saveTrackerBtn = document.getElementById('save-tracker-btn');
-
         const tableActions = document.getElementById('table-actions');
         const emptyState = document.getElementById('empty-state');
         const dataTable = document.getElementById('data-table');
         const tableBody = document.getElementById('table-body');
         const clearAllBtn = document.getElementById('clear-all-btn');
         const exportBtn = document.getElementById('export-btn');
+        const addRowBtn = document.getElementById('add-row-btn');
+
+        // Modal Elements
+        const customModal = document.getElementById('custom-modal');
+        const modalContent = document.getElementById('modal-content');
+        const modalTitle = document.getElementById('modal-title');
+        const modalMessage = document.getElementById('modal-message');
+        const modalInput = document.getElementById('modal-input');
+        const modalBulkContainer = document.getElementById('modal-bulk-container');
+        const modalCancelBtn = document.getElementById('modal-cancel-btn');
+        const modalConfirmBtn = document.getElementById('modal-confirm-btn');
+
+        // --- Modal Logic ---
+        let currentModalConfirmCallback = null;
+        let currentModalCancelCallback = null;
+
+        function showModal(title, message, type = 'alert', onConfirm = null, onCancel = null) {
+            modalTitle.textContent = title;
+            modalMessage.innerHTML = message;
+            currentModalConfirmCallback = onConfirm;
+            currentModalCancelCallback = onCancel;
+
+            modalInput.value = '';
+            modalInput.classList.add('hidden');
+            modalBulkContainer.classList.add('hidden');
+
+            if (type === 'confirm') {
+                modalCancelBtn.classList.remove('hidden');
+                modalCancelBtn.textContent = 'Cancel';
+                modalConfirmBtn.textContent = 'Confirm';
+                modalConfirmBtn.classList.replace('bg-blue-600', 'bg-red-600');
+                modalConfirmBtn.classList.replace('hover:bg-blue-700', 'hover:bg-red-700');
+            } else if (type === 'prompt') {
+                modalCancelBtn.classList.remove('hidden');
+                modalCancelBtn.textContent = 'Ignore Person';
+                modalConfirmBtn.textContent = 'Save Initials';
+                modalConfirmBtn.classList.replace('bg-red-600', 'bg-blue-600');
+                modalConfirmBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+                modalInput.classList.remove('hidden');
+                setTimeout(() => modalInput.focus(), 100);
+            } else {
+                // alert
+                modalCancelBtn.classList.add('hidden');
+                modalConfirmBtn.textContent = 'OK';
+                modalConfirmBtn.classList.replace('bg-red-600', 'bg-blue-600');
+                modalConfirmBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+            }
+
+            customModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function hideModal() {
+            modalContent.classList.remove('scale-100');
+            modalContent.classList.add('scale-95');
+            setTimeout(() => {
+                customModal.classList.add('hidden');
+                currentModalConfirmCallback = null;
+                currentModalCancelCallback = null;
+            }, 200);
+        }
+
+        modalCancelBtn.addEventListener('click', () => {
+            if (currentModalCancelCallback) currentModalCancelCallback();
+            hideModal();
+        });
+        
+        modalConfirmBtn.addEventListener('click', () => {
+            let val = modalInput.value.trim().toUpperCase();
+            if (currentModalConfirmCallback) {
+                // Return exactly false from callback to prevent closing (validation fail)
+                if (currentModalConfirmCallback(val) === false) return;
+            }
+            hideModal();
+        });
+
 
         // --- Date Helpers ---
         function getSmartYear(m) {
@@ -275,6 +316,29 @@
             return dateObj;
         }
 
+        function parseExcelDate(val) {
+            if (!val) return null;
+            if (typeof val === 'number') {
+                const d = new Date(Math.round((val - 25569) * 86400 * 1000));
+                d.setMinutes(d.getMinutes() + d.getTimezoneOffset());
+                d.setHours(12, 0, 0, 0);
+                return d;
+            }
+            if (typeof val === 'string') {
+                let s = val.trim();
+                if (s.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                    let parts = s.split('-');
+                    return new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]), 12, 0, 0);
+                }
+                let parsed = new Date(s);
+                if (!isNaN(parsed.getTime())) {
+                    parsed.setHours(12, 0, 0, 0);
+                    return parsed;
+                }
+            }
+            return null;
+        }
+
         function formatShort(d) {
             return `${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}/${d.getFullYear()}`;
         }
@@ -283,7 +347,7 @@
         function init() {
             lucide.createIcons();
 
-            // Generate Pay Periods
+            // Generate standard Pay Periods
             const anchor = new Date(2026, 4, 17, 12, 0, 0);
             let startBase = new Date(anchor.getTime());
             startBase.setDate(startBase.getDate() - (50 * 14));
@@ -295,301 +359,364 @@
                 payPeriods.push({ start: ppStart, end: ppEnd });
             }
 
-            // Parse Holidays
-            parsedHolidays = HOLIDAYS.map(h => ({ ...h, dateObj: parseDate(h.date) }));
-
-            // Event Listeners
-            document.querySelectorAll('.smart-date').forEach(input => {
-                input.addEventListener('blur', handleSmartDateBlur);
-                input.addEventListener('input', validateFormState);
+            // Drag and Drop Listeners
+            dropzone.addEventListener('click', () => fileInput.click());
+            dropzone.addEventListener('dragover', (e) => { 
+                e.preventDefault(); 
+                dropzone.classList.add('border-blue-500', 'bg-blue-50/50'); 
+            });
+            dropzone.addEventListener('dragleave', () => { 
+                dropzone.classList.remove('border-blue-500', 'bg-blue-50/50'); 
+            });
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-blue-500', 'bg-blue-50/50');
+                if (e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+                    handleFileUpload(e.dataTransfer.files[0]);
+                }
             });
 
-            // Force physical uppercase and strip out any non-letter characters as user types
-            initialsInput.addEventListener('input', (e) => {
-                e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase();
-            });
-            initialsInput.addEventListener('blur', (e) => {
-                e.target.value = e.target.value.trim();
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files && e.target.files.length > 0) {
+                    handleFileUpload(e.target.files[0]);
+                }
             });
 
-            form.addEventListener('submit', handlePreview);
-            cancelStagingBtn.addEventListener('click', clearStaging);
-            saveTrackerBtn.addEventListener('click', handleSaveToTracker);
             clearAllBtn.addEventListener('click', handleClearAll);
             exportBtn.addEventListener('click', exportData);
+            addRowBtn.addEventListener('click', handleAddRow);
         }
 
-        // --- Logic & Event Handlers ---
-        function handleSmartDateBlur(e) {
-            let val = e.target.value.trim();
-            if (!val) { validateFormState(); return; }
-            
-            let cleanStr = val.replace(/[\-\.]/g, '/');
-            let parts = cleanStr.split('/');
-            let y, m, d;
-            
-            if (parts.length === 2) {
-                m = parts[0];
-                d = parts[1];
-                y = getSmartYear(m);
-            } else if (parts.length === 3) {
-                let [p1, p2, p3] = parts;
-                if (p1.length === 4) { y = p1; m = p2; d = p3; } 
-                else { m = p1; d = p2; y = p3; }
-                if (y.length === 2) y = '20' + y;
-            } else {
-                validateFormState();
-                return;
-            }
+        // --- Data Processing Pipeline ---
+        function handleFileUpload(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const data = new Uint8Array(e.target.result);
+                    const workbook = XLSX.read(data, {type: 'array', raw: true});
+                    const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                    const rows = XLSX.utils.sheet_to_json(firstSheet, {header: 1, raw: true, defval: ""});
 
-            m = m.padStart(2, '0');
-            d = d.padStart(2, '0');
+                    // 1. Locate the Row with Dates
+                    let dateRowIdx = -1;
+                    for(let i = 0; i < Math.min(10, rows.length); i++) {
+                        let validDates = 0;
+                        for(let c = 1; c < rows[i].length; c++) {
+                            if (parseExcelDate(rows[i][c])) validDates++;
+                        }
+                        if (validDates >= 3) {
+                            dateRowIdx = i;
+                            break;
+                        }
+                    }
 
-            if (m.length === 2 && d.length === 2 && y.length === 4) {
-                e.target.value = `${m}/${d}/${y}`;
-            }
-            
-            validateFormState();
-        }
+                    if (dateRowIdx === -1) {
+                        showModal("Parsing Error", "Could not identify the header row containing dates. Please ensure the file has dates formatted properly.", "alert");
+                        return;
+                    }
 
-        function validateFormState() {
-            const uStart = parseDate(startDateInput.value);
-            const uEnd = parseDate(endDateInput.value);
-            
-            let isError = uStart && uEnd && uStart > uEnd;
-            let isStaging = staging.length > 0;
+                    // 2. Extract Dates
+                    parsedDates = [];
+                    for (let c = 1; c < rows[dateRowIdx].length; c++) {
+                        parsedDates[c] = parseExcelDate(rows[dateRowIdx][c]);
+                    }
 
-            if (isError) {
-                dateError.classList.remove('hidden');
-            } else {
-                dateError.classList.add('hidden');
-            }
+                    parsedRows = rows.slice(dateRowIdx + 1);
 
-            previewBtn.disabled = isError || isStaging;
-        }
-
-        function handlePreview(e) {
-            e.preventDefault();
-            
-            let currentEndDate = endDateInput.value;
-            if (startDateInput.value && !endDateInput.value) {
-                handleSmartDateBlur({ target: startDateInput }); 
-                currentEndDate = startDateInput.value;
-                endDateInput.value = startDateInput.value;
-            }
-
-            if (!startDateInput.value || !currentEndDate) return;
-
-            const uStart = parseDate(startDateInput.value);
-            const uEnd = parseDate(currentEndDate);
-
-            if (!uStart || !uEnd) {
-                alert("Please enter valid dates.");
-                return;
-            }
-
-            if (uStart > uEnd) return;
-
-            const overlaps = [];
-            for (const pp of payPeriods) {
-                if (pp.start <= uEnd && pp.end >= uStart) {
-                    const oStart = new Date(Math.max(uStart.getTime(), pp.start.getTime()));
-                    const oEnd = new Date(Math.min(uEnd.getTime(), pp.end.getTime()));
+                    // 3. Scan for Unknown Names
+                    unknownQueue = [];
+                    let foundNames = new Set();
                     
-                    const holidaysInPeriod = parsedHolidays
-                        .filter(h => h.dateObj >= pp.start && h.dateObj <= pp.end)
-                        .map(h => h.name);
+                    parsedRows.forEach(row => {
+                        let name = (row[0] || "").toString().trim();
+                        if (!name) return;
+                        // Strip quotes
+                        name = name.replace(/^["']|["']$/g, '').trim();
+                        row[0] = name; 
 
-                    overlaps.push({
-                        id: Math.random().toString(36).substr(2, 9),
-                        ppStart: pp.start,
-                        ppEnd: pp.end,
-                        start: oStart,
-                        end: oEnd,
-                        hours: 0,
-                        holidays: holidaysInPeriod
+                        if (!sessionInitials[name] && !foundNames.has(name)) {
+                            foundNames.add(name);
+                            unknownQueue.push(name);
+                        }
                     });
-                }
-            }
 
-            staging = overlaps;
-            renderStaging();
-            validateFormState();
+                    // 4. Process the Unknown Queue (triggers grid processing once done)
+                    if (unknownQueue.length > 0) {
+                        showBulkUnknownModal(unknownQueue, (results) => {
+                            Object.entries(results).forEach(([name, val]) => {
+                                sessionInitials[name] = val;
+                            });
+                            processGrid();
+                        });
+                    } else {
+                        processGrid();
+                    }
+                    
+                } catch (error) {
+                    console.error("Error processing file:", error);
+                    showModal("Upload Error", "There was an error reading the file. Please try again with a valid XLSX or CSV file.", "alert");
+                } finally {
+                    // Reset input so the same file can be chosen again if needed
+                    fileInput.value = '';
+                }
+            };
+            reader.readAsArrayBuffer(file);
         }
 
-        function renderStaging() {
-            if (staging.length === 0) {
-                stagingContainer.classList.add('hidden');
-                return;
-            }
-
-            stagingContainer.classList.remove('hidden');
-            stagingList.innerHTML = '';
+        function showBulkUnknownModal(names, onConfirm) {
+            modalTitle.textContent = "Assign Initials";
+            modalMessage.innerHTML = `Found <strong>${names.length}</strong> new provider(s) in this upload.<br>Assign their initials or check 'Ignore' to skip their records entirely.`;
             
-            staging.forEach(s => {
-                const isHoliday = s.holidays.length > 0;
-                let warningHTML = '';
-                
-                if (isHoliday) {
-                    warningHTML += `
-                        <div class="mt-3 space-y-2">
-                            <div class="text-xs font-medium text-amber-800 bg-amber-50 p-2.5 rounded-md border border-amber-200 flex items-start gap-2">
-                                <i data-lucide="alert-triangle" class="shrink-0 mt-0.5 text-amber-600" width="14" height="14"></i>
-                                <span><strong>Holiday Pay Period!</strong> Includes: ${s.holidays.join(', ')}</span>
-                            </div>
-                            <div id="over-hours-warning-${s.id}" class="hidden text-xs font-medium text-red-800 bg-red-50 p-2.5 rounded-md border border-red-200 flex items-start gap-2">
-                                <i data-lucide="alert-circle" class="shrink-0 mt-0.5 text-red-600" width="14" height="14"></i>
-                                <span><strong>Check Hours:</strong> You entered <span class="warn-hours-val"></span> hours during a holiday period. Should it be 70?</span>
-                            </div>
-                        </div>
-                    `;
-                } else {
-                    warningHTML += `
-                        <div id="standard-over-hours-warning-${s.id}" class="hidden mt-3 text-xs font-medium text-amber-800 bg-amber-50 p-2.5 rounded-md border border-amber-200 flex items-start gap-2">
-                            <i data-lucide="alert-circle" class="shrink-0 mt-0.5 text-amber-600" width="14" height="14"></i>
-                            <span><strong>Check Hours:</strong> You entered <span class="standard-warn-hours-val"></span> hours. A standard pay period typically maxes at 80.</span>
-                        </div>
-                    `;
-                }
+            modalInput.classList.add('hidden');
+            modalCancelBtn.classList.add('hidden');
+            
+            modalBulkContainer.innerHTML = '';
+            modalBulkContainer.classList.remove('hidden');
 
+            names.forEach((name, idx) => {
+                const safeName = name.replace(/"/g, '&quot;');
                 const html = `
-                    <div class="p-4 bg-white border border-gray-200 rounded-xl shadow-sm transition-shadow hover:shadow-md">
-                        <div class="flex justify-between items-center">
-                            <div>
-                                <p class="text-sm font-semibold text-gray-900">${formatShort(s.start)} &ndash; ${formatShort(s.end)}</p>
-                                <p class="text-xs text-gray-500 mt-0.5">Pay Period: ${formatShort(s.ppStart)} to ${formatShort(s.ppEnd)}</p>
-                            </div>
-                            <div class="flex items-center gap-2">
-                                <input
-                                    type="number"
-                                    step="0.01"
-                                    min="0"
-                                    placeholder="0.00"
-                                    value="${s.hours}"
-                                    data-id="${s.id}"
-                                    data-isholiday="${isHoliday}"
-                                    class="staging-hour-input w-24 p-2.5 bg-gray-50 border border-gray-300 rounded-lg focus:bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm font-semibold text-gray-900 outline-none text-right transition-colors shadow-inner"
-                                />
-                            </div>
+                    <div class="flex items-center justify-between bg-gray-50 p-3 rounded-lg border border-gray-200 gap-3">
+                        <div class="truncate text-sm font-semibold text-gray-800 flex-1" title="${safeName}">${safeName}</div>
+                        <div class="flex items-center gap-3">
+                            <label class="flex items-center gap-1.5 text-xs font-semibold text-gray-600 cursor-pointer hover:text-gray-900 transition-colors">
+                                <input type="checkbox" class="ignore-toggle w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" data-idx="${idx}">
+                                Ignore
+                            </label>
+                            <input type="text" class="initials-input w-20 p-2 text-sm font-bold text-gray-900 uppercase border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 outline-none placeholder-gray-400 text-center transition-all" data-idx="${idx}" placeholder="e.g. AB">
                         </div>
-                        ${warningHTML}
                     </div>
                 `;
-                stagingList.insertAdjacentHTML('beforeend', html);
+                modalBulkContainer.insertAdjacentHTML('beforeend', html);
             });
 
-            lucide.createIcons();
-            updateStagingTotal();
-
-            // Bind inputs for live total update & warnings
-            document.querySelectorAll('.staging-hour-input').forEach(input => {
-                input.addEventListener('input', (e) => {
-                    const val = parseFloat(e.target.value) || 0;
-                    const id = e.target.dataset.id;
-                    const isHol = e.target.dataset.isholiday === "true";
-                    
-                    const item = staging.find(x => x.id === id);
-                    if (item) item.hours = val;
-
-                    if (isHol) {
-                        const warnBox = document.getElementById(`over-hours-warning-${id}`);
-                        if (val >= 80) {
-                            warnBox.querySelector('.warn-hours-val').textContent = val;
-                            warnBox.classList.remove('hidden');
-                        } else {
-                            warnBox.classList.add('hidden');
-                        }
+            // Add listeners for the toggles
+            document.querySelectorAll('.ignore-toggle').forEach(chk => {
+                chk.addEventListener('change', (e) => {
+                    const idx = e.target.dataset.idx;
+                    const input = document.querySelector(`.initials-input[data-idx="${idx}"]`);
+                    if (e.target.checked) {
+                        input.disabled = true;
+                        input.classList.add('opacity-50', 'bg-gray-200', 'cursor-not-allowed');
+                        input.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+                        input.value = '';
                     } else {
-                        const standardWarnBox = document.getElementById(`standard-over-hours-warning-${id}`);
-                        if (val > 80) {
-                            standardWarnBox.querySelector('.standard-warn-hours-val').textContent = val;
-                            standardWarnBox.classList.remove('hidden');
+                        input.disabled = false;
+                        input.classList.remove('opacity-50', 'bg-gray-200', 'cursor-not-allowed');
+                    }
+                });
+            });
+
+            // Clean up red border on input
+            document.querySelectorAll('.initials-input').forEach(input => {
+                input.addEventListener('input', (e) => {
+                    e.target.value = e.target.value.replace(/[^a-zA-Z]/g, '').toUpperCase();
+                    if (e.target.value.trim() !== '') {
+                        e.target.classList.remove('border-red-500', 'ring-2', 'ring-red-200');
+                    }
+                });
+            });
+
+            modalConfirmBtn.textContent = 'Save & Process';
+            modalConfirmBtn.classList.replace('bg-red-600', 'bg-blue-600');
+            modalConfirmBtn.classList.replace('hover:bg-red-700', 'hover:bg-blue-700');
+
+            currentModalConfirmCallback = () => {
+                const results = {};
+                let validationFailed = false;
+
+                names.forEach((name, idx) => {
+                    const isIgnored = document.querySelector(`.ignore-toggle[data-idx="${idx}"]`).checked;
+                    const inputEl = document.querySelector(`.initials-input[data-idx="${idx}"]`);
+                    const initials = inputEl.value.trim().toUpperCase();
+                    
+                    if (isIgnored) {
+                        results[name] = "IGNORE";
+                    } else if (initials) {
+                        results[name] = initials;
+                    } else {
+                        inputEl.classList.add('border-red-500', 'ring-2', 'ring-red-200');
+                        validationFailed = true;
+                    }
+                });
+
+                if (validationFailed) {
+                    return false; // Tells the listener to NOT close the modal
+                }
+
+                onConfirm(results);
+            };
+
+            customModal.classList.remove('hidden');
+            setTimeout(() => {
+                modalContent.classList.remove('scale-95');
+                modalContent.classList.add('scale-100');
+            }, 10);
+        }
+
+        function processGrid() {
+            let newEntriesCount = 0;
+
+            parsedRows.forEach(row => {
+                let name = row[0];
+                if (!name) return;
+                
+                let initials = sessionInitials[name];
+                if (!initials || initials === "IGNORE") return;
+
+                // Extract all valid leave items for the person
+                let leaveDays = [];
+                for (let c = 1; c < row.length; c++) {
+                    if (!parsedDates[c]) continue;
+                    let val = (row[c] || "").toString().trim().toUpperCase();
+                    
+                    if (['VAC', 'ADM', 'SICK', 'X', 'HOLIDAY'].includes(val)) {
+                        leaveDays.push({
+                            date: parsedDates[c],
+                            type: val
+                        });
+                    }
+                }
+
+                if (leaveDays.length === 0) return;
+
+                // Sort chronologically overall
+                leaveDays.sort((a, b) => a.date - b.date);
+
+                // Group the specific days into Pay Periods
+                let ppGroups = {};
+                leaveDays.forEach(ld => {
+                    let pp = payPeriods.find(p => ld.date >= p.start && ld.date <= p.end);
+                    if (pp) {
+                        let ppKey = pp.start.getTime().toString();
+                        if (!ppGroups[ppKey]) ppGroups[ppKey] = { pp: pp, days: [] };
+                        ppGroups[ppKey].days.push(ld);
+                    }
+                });
+
+                const isSpecialProvider = SPECIAL_PROVIDERS.includes(initials);
+
+                // Process logic PER PAY PERIOD
+                Object.values(ppGroups).forEach(group => {
+                    let days = group.days;
+                    days.sort((a, b) => a.date - b.date);
+
+                    let paidLeaveCount = 0;
+
+                    // Compute Hours logic
+                    days.forEach(d => {
+                        if (['VAC', 'ADM', 'SICK'].includes(d.type)) {
+                            paidLeaveCount++;
+                            if (isSpecialProvider) {
+                                // Rule: 1st and 2nd paid leave days are 10 hrs. 3rd+ are 12 hrs.
+                                d.hours = (paidLeaveCount <= 2) ? 10 : 12;
+                            } else {
+                                // Standard provider is flat 10 hrs
+                                d.hours = 10;
+                            }
+                        } else if (['X', 'HOLIDAY'].includes(d.type)) {
+                            d.hours = 0;
+                        }
+                    });
+
+                    // Bundle contiguous days within the same pay period into blocks
+                    let currentBlock = [days[0]];
+
+                    for (let i = 1; i < days.length; i++) {
+                        const prev = currentBlock[currentBlock.length - 1];
+                        const curr = days[i];
+
+                        // Diff in days exactly 1 = contiguous block
+                        const diffTime = curr.date.getTime() - prev.date.getTime();
+                        const diffDays = Math.round(diffTime / (1000 * 3600 * 24));
+
+                        if (diffDays === 1) {
+                            currentBlock.push(curr);
                         } else {
-                            standardWarnBox.classList.add('hidden');
+                            saveBlockToEntries(initials, currentBlock);
+                            newEntriesCount++;
+                            currentBlock = [curr];
                         }
                     }
-
-                    updateStagingTotal();
-                });
-            });
-        }
-
-        function updateStagingTotal() {
-            const total = staging.reduce((sum, s) => sum + (parseFloat(s.hours) || 0), 0);
-            stagingTotal.textContent = total.toFixed(2);
-        }
-
-        function handleSaveToTracker() {
-            const newInitials = (initialsInput.value).trim().toUpperCase() || 'UNK';
-
-            const validEntries = staging
-                .filter(s => s.hours !== '' && parseFloat(s.hours) >= 0)
-                .map(s => ({
-                    id: s.id,
-                    initials: newInitials,
-                    start: s.start,
-                    end: s.end,
-                    hours: parseFloat(s.hours)
-                }));
-
-            if (validEntries.length === 0) {
-                alert("Please enter valid hours for at least one split period before saving.");
-                return;
-            }
-
-            let overlapDetails = "";
-            const hasOverlap = validEntries.some(ne => {
-                return entries.some(ee => {
-                    if (ee.initials === newInitials && ne.start <= ee.end && ne.end >= ee.start) {
-                        overlapDetails = `${formatShort(ee.start)} to ${formatShort(ee.end)}`;
-                        return true;
-                    }
-                    return false;
+                    saveBlockToEntries(initials, currentBlock);
+                    newEntriesCount++;
                 });
             });
 
-            if (hasOverlap) {
-                const proceed = confirm(`Warning: ${newInitials} already has leave logged intersecting with ${overlapDetails}. Do you still want to save this overlapping entry?`);
-                if (!proceed) return;
-            }
-
-            entries = [...entries, ...validEntries];
-            
-            clearStaging();
-            startDateInput.value = '';
-            endDateInput.value = '';
-            validateFormState();
             renderEntries();
-
-            startDateInput.focus();
+            
+            if (newEntriesCount > 0) {
+                showModal("Upload Complete", `Successfully processed and mapped <strong>${newEntriesCount} leave blocks</strong> to the tracker.`, "alert");
+            } else {
+                showModal("Notice", "No valid leave entries were found in the uploaded file.", "alert");
+            }
         }
 
-        function clearStaging() {
-            staging = [];
-            renderStaging();
-            validateFormState();
+        function saveBlockToEntries(initials, block) {
+            if (!block || block.length === 0) return;
+            const totalHours = block.reduce((sum, d) => sum + d.hours, 0);
+            
+            entries.push({
+                id: Math.random().toString(36).substr(2, 9),
+                initials: initials,
+                start: block[0].date,
+                end: block[block.length - 1].date,
+                hours: totalHours
+            });
         }
 
+
+        // --- UI Rendering ---
         function renderEntries() {
             if (entries.length === 0) {
                 emptyState.classList.remove('hidden');
                 dataTable.classList.add('hidden');
-                tableActions.classList.add('hidden');
+                clearAllBtn.classList.add('hidden');
+                exportBtn.classList.add('hidden');
                 return;
             }
 
             emptyState.classList.add('hidden');
             dataTable.classList.remove('hidden');
-            tableActions.classList.remove('hidden');
+            clearAllBtn.classList.remove('hidden');
+            exportBtn.classList.remove('hidden');
             
             tableBody.innerHTML = '';
 
+            // Render newly generated blocks into tracker
             entries.forEach(entry => {
                 const html = `
                     <tr class="hover:bg-gray-50 transition-colors group">
-                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">${entry.initials}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${formatShort(entry.start)}</td>
-                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">${formatShort(entry.end)}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-gray-900">
+                            <input 
+                                type="text" 
+                                value="${entry.initials}" 
+                                data-id="${entry.id}" 
+                                data-field="initials"
+                                placeholder="ABC"
+                                class="tracker-input w-24 p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 rounded-md bg-transparent focus:bg-white text-gray-900 font-bold uppercase outline-none transition-all placeholder-gray-400"
+                            />
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <input 
+                                type="text" 
+                                value="${entry.start ? formatShort(entry.start) : ''}" 
+                                data-id="${entry.id}" 
+                                data-field="start"
+                                placeholder="MM/DD/YY"
+                                class="tracker-date-input w-28 p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 rounded-md bg-transparent focus:bg-white text-gray-900 font-medium outline-none transition-all placeholder-gray-400"
+                            />
+                        </td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-600">
+                            <input 
+                                type="text" 
+                                value="${entry.end ? formatShort(entry.end) : ''}" 
+                                data-id="${entry.id}" 
+                                data-field="end"
+                                placeholder="MM/DD/YY"
+                                class="tracker-date-input w-28 p-2 border border-transparent hover:border-gray-300 focus:border-blue-500 focus:ring-2 focus:ring-blue-500 rounded-md bg-transparent focus:bg-white text-gray-900 font-medium outline-none transition-all placeholder-gray-400"
+                            />
+                        </td>
                         <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
                             <input 
                                 type="number"
@@ -615,10 +742,48 @@
 
             lucide.createIcons();
 
+            document.querySelectorAll('.tracker-input').forEach(input => {
+                input.addEventListener('change', (e) => {
+                    const id = e.target.dataset.id;
+                    const val = e.target.value.trim().toUpperCase();
+                    e.target.value = val;
+                    const item = entries.find(x => x.id === id);
+                    if (item) item.initials = val;
+                });
+            });
+
+            document.querySelectorAll('.tracker-date-input').forEach(input => {
+                input.addEventListener('blur', (e) => {
+                    const id = e.target.dataset.id;
+                    const field = e.target.dataset.field;
+                    const val = e.target.value.trim();
+                    const item = entries.find(x => x.id === id);
+                    
+                    if (!val) {
+                        if (item) item[field] = null;
+                        e.target.classList.remove('border-red-500', 'text-red-600');
+                        return;
+                    }
+
+                    const parsed = parseDate(val);
+                    if (parsed) {
+                        e.target.value = formatShort(parsed);
+                        if (item) item[field] = parsed;
+                        e.target.classList.remove('border-red-500', 'text-red-600');
+                    } else {
+                        e.target.classList.add('border-red-500', 'text-red-600');
+                    }
+                });
+                
+                input.addEventListener('input', (e) => {
+                    e.target.classList.remove('border-red-500', 'text-red-600');
+                });
+            });
+
             document.querySelectorAll('.tracker-hour-input').forEach(input => {
                 input.addEventListener('change', (e) => {
                     const id = e.target.dataset.id;
-                    const val = e.target.value;
+                    const val = parseFloat(e.target.value) || 0;
                     const item = entries.find(x => x.id === id);
                     if (item) item.hours = val;
                 });
@@ -633,11 +798,27 @@
             });
         }
 
+        function handleAddRow() {
+            entries.push({
+                id: Math.random().toString(36).substr(2, 9),
+                initials: '',
+                start: null,
+                end: null,
+                hours: 0
+            });
+            renderEntries();
+        }
+
         function handleClearAll() {
-            if (confirm("Are you sure you want to clear all saved records?")) {
-                entries = [];
-                renderEntries();
-            }
+            showModal(
+                "Clear All Records", 
+                "Are you sure you want to clear all data currently in the tracker? This action cannot be undone.", 
+                "confirm", 
+                () => {
+                    entries = [];
+                    renderEntries();
+                }
+            );
         }
 
         function exportData() {
@@ -646,8 +827,8 @@
             const headers = ['Initials', 'Start_Date', 'End_Date', 'Leave_Hours'];
             const rows = entries.map(r => [
                 r.initials, 
-                formatShort(r.start), 
-                formatShort(r.end), 
+                r.start ? formatShort(r.start) : '', 
+                r.end ? formatShort(r.end) : '', 
                 r.hours
             ]);
             const data = [headers, ...rows];
